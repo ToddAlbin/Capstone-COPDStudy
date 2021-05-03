@@ -222,9 +222,60 @@ Downloaded AQI data from the EPA Pre-Generated Data Files website is separate fi
 
 ##### Data Consistency Inspections
 
-Questions 1-4 can be easily addressed using the skimr package. Below is the results from running skim(aqi_2010).
+Questions 1), 2), and 4):
+These three questions can be addressed by capturing column names of all tables as a dataframe and transposing the values. Inspection of the resulting table will show both the names and the order in which they appear. Missing columns will show as shifted data. The code for this follows:
+
+colname_list <- data.frame(a = colnames(aqi_2010),
+                           b = colnames(aqi_2011),
+                           c = colnames(aqi_2012),
+                           d = colnames(aqi_2013),
+                           e = colnames(aqi_2014),
+                           f = colnames(aqi_2015),
+                           g = colnames(aqi_2016),
+                           h = colnames(aqi_2017),
+                           i = colnames(aqi_2018),
+                           j = colnames(aqi_2019))
+t_colnames_list <- t(colname_list)
+
+Results: All AQI files show the same names, with the same formatting, and in the same sequence. No columns are missing across all files.
+
+Questions 3):
+This question can be addressed by capturing column types of all tables as a dataframe and transposing the values. Inspection of the resulting table will show both the names and the order in which they appear. The code for this follows:
+
+coltype_list <- data.frame(a = sapply(aqi_2010, class),
+                           b = sapply(aqi_2011, class),
+                           c = sapply(aqi_2012, class),
+                           d = sapply(aqi_2013, class),
+                           e = sapply(aqi_2014, class),
+                           f = sapply(aqi_2015, class),
+                           g = sapply(aqi_2016, class),
+                           h = sapply(aqi_2017, class),
+                           i = sapply(aqi_2018, class),
+                           j = sapply(aqi_2019, class))
+t_coltype_list <- t(coltype_list)
+
+Results: All AQI files show the same column types, with the same formatting, and in the same sequence.
 
 
+```{r packages, include = TRUE, message = FALSE}
+# Load libraries needed for cleaning
+library(readr)
+library(dplyr)
+library(tidyr)
+library(skimr)
+```
+```{r data loading, message = FALSE}
+# ------------------------------------------------------
+# EPA AQI Data 
+
+# Read in example data file
+aqi_2010 <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/annual_aqi_by_county_2010.csv')
+```
+```{r}
+# Initial data inspection
+glimpse(aqi_2010)
+skim(aqi_2010)
+```
 
 ### Derived Values & Finished Tables
 
