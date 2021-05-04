@@ -480,7 +480,7 @@ Each of the yearly reduced tables were then aggregated using dplyr::bind_rows() 
 
 #### Concentration Data Tables
 
-##### Filtering, Subsetting, Mutation, and Selection of AQI Year Tables
+##### Filtering, Subsetting, Mutation, and Selection of Concentration Year Tables
 
 The yearly Concentration data files can now be reduced to to a single analysis ready table of Concentration measures. Each file needs the following changes prior to aggregation:
 
@@ -490,23 +490,76 @@ The yearly Concentration data files can now be reduced to to a single analysis r
 - Select only the fields 'State Name', "County Name', 'Year', and 'Arithmetic Mean' for extraction. 
 - Rename the 'Arithmetic Mean' variable to 'PM25'. This is the other of our explanatory variables. 
 
-The code below shows reduction of the 2010 Concentration table.
-```{r AQI reduction}
-aqi_2010_filter <- aqi_2010 %>%
-  filter(State == "Indiana") %>%
-  filter(County %in% c("Marion", "Allen", "Vanderburgh", "St. Joseph", "Hamilton", "Monroe", "Lake", "Tippecanoe", "Delaware")) %>%
-  mutate(RiskDays = `Moderate Days` + `Unhealthy for Sensitive Groups Days` + `Unhealthy Days` + `Very Unhealthy Days` + `Hazardous Days`) %>%
-  select(State, County, Year, RiskDays)
+Due to large file sizes, this reduction can't be code chunked. 
 
-print(aqi_2010_filter)
+The ten reduced files are then joined into one table using dplyr::row_bind(). The resulting table now contains multiple rows of PM25 monitoring data, with one row for each monitoring site per county. Records need to be:
+
+- Grouped by both 'County Name' and 'Year'
+- Summarised for a new variable 'PM25_Avg' = mean of all PM25 values within the group
+- And mutated for a new column containing 'State Name' = 'Indiana'
+
+```{r Conc summarise}
+conc_combined <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/conc_combined.csv')
+
+conc_final <- conc_combined %>%
+  group_by(`County Name`, Year) %>%
+  summarise(PM25_Avg = mean(PM25)) %>%
+  mutate('State Name' = 'Indiana') %>%
+  ungroup()
+
+print(conc_final)
 ```
 
-Each of the yearly reduced tables were then aggregated using dplyr::bind_rows() into one "aqi_final" data table. This will be joined into a final analysis table once all remaining data reduction has been completed.
+This creates our 'conc_final' table, ready for joining with the other reduced tables.
 
 #### Discharge Data
 
+##### Filtering, Subsetting, Mutation, and Selection of Discharge Year Tables
+
+The yearly Discharge data files can now be reduced to to a single analysis ready table of Concentration measures. Each file needs the following changes prior to aggregation:
+
+- Filter for 'HOSPITAL_ID' to match the hospital id codes specific to the cities identified in Proposed Methodology. A hospital id list was downloaded for each year of diagnostic data originally pulled. This allowed for direct filtering by HOSPITAL_ID.
+- Filter for 'DIAGNOSIS_1' values to match the ICD9/ICD10 codes specific to that year's file
+- Mutate a new variable 'YEAR' with all values = to the year of the data file
+- Mutate a new variable 'COUNTY' that posts the county name to those records with HOSPITAL_ID values matching cities within that county. These cities are limited to the eleven identified within the Proposed Methodology.
+- Select only 'YEAR', 'COUNTY', 'HOSPITAL_ID', 'DIAGNOSIS_1', and 'PATS' fields for extraction
+- Group records by 'COUNTY' and 'YEAR'
+- Summarize a new field 'HOSP_COUNT' = to the sum of all patients discharged (sum of 'PATS'). This reduces the table to aggregated hospital discharges by county and discharge code.
+- Mutate a 'STATE' variable with all record to contain 'Indiana'
+- Ungroup the table
+
+The diag_2019 table was filtered by the first two bullet items above to provide a smaller data file, loadable to github. The script below shows the remaining reduction code working on this file.
+
+```{r Diag file load, include=FALSE}
+diag_2019_cities <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/diag_2019_cities.csv')
+```
+```{r Diag reduction}
+diag_2019_filter <- diag_2019_cities %>%
+  mutate(YEAR = 2019) %>%
+  mutate(COUNTY = case_when(
+    HOSPITAL_ID %in% c(1, 51, 53, 55, 62, 63, 111, 137, 138, 139, 142, 146, 151, 154, 459, 463, 491) ~ "Marion",
+    HOSPITAL_ID %in% c(30, 31, 32, 33, 68, 126, 166) ~ "Allen",
+    HOSPITAL_ID %in% c(27, 28, 464) ~ "Vanderburgh",
+    HOSPITAL_ID == 103 ~ "St. Joseph",
+    HOSPITAL_ID %in% c(143, 155, 170, 171, 172, 725, 726) ~ "Hamilton",
+    HOSPITAL_ID %in% c(11, 158, 458) ~ "Monroe",
+    HOSPITAL_ID %in% c(38, 44, 470, 705) ~ "Lake",
+    HOSPITAL_ID %in% c(60, 61, 162, 489) ~ "Tippecanoe",
+    HOSPITAL_ID %in% c(81, 493) ~ "Delaware"
+  )) %>%
+  select(YEAR, COUNTY, HOSPITAL_ID, DIAGNOSIS_1, PATS) %>%
+  group_by(COUNTY, YEAR) %>%
+  summarise(HOSP_COUNT = sum(PATS)) %>%
+  mutate("STATE" = "Indiana")%>%
+  ungroup()
+
+print(diag_2019_filter)
+```
+
+Each of the yearly reduced tables were then aggregated using dplyr::bind_rows() into one 'diag_final' data table. This will be joined into a final analysis table with the other reduced data sets.
 
 #### Final Analysis Table
+
 
 
 ## Analysis {.tabset}

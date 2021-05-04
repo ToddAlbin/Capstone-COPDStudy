@@ -347,6 +347,9 @@ conc_final <- conc_combined %>%
   mutate('State Name' = 'Indiana') %>%
   ungroup()
 
+# Save some files as csv files for use with the Rmd file
+
+write_csv(conc_combined, "conc_combined.csv")
 #------------------------------------------------------------
 # Subset Diag data and create new columnS "HOSP_COUNT" and "STATE"
 
@@ -561,7 +564,7 @@ diag_2010_filter <- diag_2010 %>%
   ungroup()
 
 # Join tables together into diag_final
-diag_combined <- bind_rows(diag_2010_filter,
+diag_final <- bind_rows(diag_2010_filter,
                            diag_2011_filter,
                            diag_2012_filter,
                            diag_2013_filter,
@@ -572,4 +575,21 @@ diag_combined <- bind_rows(diag_2010_filter,
                            diag_2018_filter,
                            diag_2019_filter)
 
+# Save off some tables for use within the Rmd file
+
+diag_2019_filter_cities <- diag_2019 %>%
+  filter(HOSPITAL_ID %in% c(1, 51, 53, 55, 62, 63, 111, 137, 138, 139, 142, 146, 151, 154, 459, 463, 491, 30, 31, 32, 33, 68, 126, 166, 27, 28, 464, 103, 143, 155, 170, 171, 172, 725, 726, 11, 158, 458, 38, 44, 470, 705, 60, 61, 162, 489, 81, 493)) %>%
+  filter(DIAGNOSIS_1 %in% c('J440', 'J441', 'J449'))
+
+write_csv(diag_2019_filter_cities, "diag_2019_cities.csv")
 #-----------------------------------------------------------
+# Join the three individual reduced tables into a final analysis table
+
+analysis <- inner_join(aqi_final, conc_final, by = c("State"="State Name", "County"="County Name", "Year"="Year"))
+
+# rename the HOSP_COUNT column to read Hosp_Count
+diag_final <- rename(diag_final, Hosp_Count = HOSP_COUNT)
+
+analysis <- inner_join(analysis, diag_final, by = c("State"="STATE", "County"="COUNTY", "Year"="YEAR"))
+
+write_csv(analysis, "analaysis.csv")
