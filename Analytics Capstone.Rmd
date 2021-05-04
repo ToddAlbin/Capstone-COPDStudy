@@ -1,0 +1,519 @@
+---
+title: "Preliminary Examination of Air Quality Monitoring Data and Elevated Hospitalization Discharge Counts for COPD patients"
+subtitle: "Analytics Capstone Project (fictionalized client)"
+author: "Todd Albin"
+date: "4/29/2021"
+output: 
+ html_document:
+   code_folding: hide    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# {.tabset}
+
+## Introduction {.tabset}
+
+### Problem Statement & Client Background
+
+Chronic Obstructive Pulmonary Disease (COPD) is a term assigned to a group of pulmonary diseases that are life-threatening and affects normal breathing. The associated diseases are: chronic bronchitis, emphysema, refractory (non-reversible) asthma, and some forms of bronchiectasis. COPD is the third leading cause of death in the U.S., behind heart disease and cancer. Globally, it is the fifth leading cause of death.
+
+In 2014 Schneck Medical Center, located in Jackson County Indiana, launched a data analytics initiative with IBM Watson Health to analyze the treatment patterns, costs, and outcomes data for their hospital and compare those with peer group hospitals around the country. This study showed that Schneck was experiencing higher than average numbers of complications, readmissions, and patient death related to COPD, compared to their peers. This was significant as Jackson County has a COPD population that is approximately twice the national average.
+
+The Schneck analytics team focused on long-term care practices, implementing weekly respiratory care visits, sleep studies for patients, patient discharge planning, and instituted new protocols focusing on COPD during the discharge process. These efforts resulted in an 80% reduction in unplanned COPD readmission rate. Additionally, the hospital witnessed a 55% reduction in the hospital admission rate for individuals diagnosed with COPD from 2014 to 2017. (See web article: [A Data-Driven Effort to Tackle Indiana’s COPD Problem](https://www.hcinnovationgroup.com/population-health-management/article/13030782/a-datadriven-effort-to-tackle-indianas-copd-problem))
+
+Schneck Medical Center seeks to build on these early results. Prior research has established that acute air quality events significantly impact hospitalization rates for COPD patients. The pollutants of concern in these events are regulated in the U.S. under EPA National Ambient Air Quality Standards (NAAQS): nitrogen dioxide, sulfur dioxide, ozone, and particulate matter. The client requests a preliminary study on the correlation between these pollutants and hospital discharge rate within the state of Indiana, to the degree data are available. The question under study is: Does current EPA monitoring data on these pollutants demonstrate any preliminary predictive relationship with hospitalization events? The study results will provide guidance on possible new monitoring variables relevant to their current COPD patient outreach program. 
+
+### Proposed Methodology
+Data availability significantly impacts the scope of variables this study can examine.
+After discussing this limitation with the client, a preliminary multiple linear regression analysis limited to two explanatory variables was chosen for this study's methodology. This allows for a study of ambient air quality monitoring data as predictor variables of yearly COPD hospitalization rate. Specific criteria for this analysis are:
+
+- Explanatory variables (independent) will focus solely on the following EPA pollutant data, available through the EPA [Pre-generated Data Files](https://aqs.epa.gov/aqsweb/airdata/download_files.html) website:
+  - Number of annual days the ambient air quality index (AQI) value exceeded 50
+  - Annual mean concentration of Particulate Matter (Pollutant Standard = PM25 Annual 2006)
+- The Response variable (dependent) will be Indiana hospital *Total Patient Discharges* counts for each year, as published through the Indiana Department of Health [Hospital Discharge Data](https://www.in.gov/isdh/20624.htm) website, specific to the diagnosis code(s) for COPD.
+- Data under study will be limited to:
+  - The years from 2010 through 2019
+  - Hospitalization discharge data from the top eleven cities within Indiana (i.e., Indianapolis, Fort Wayne, Evansville, South Bend, Carmel, Fishers, Bloomington, Hammond, Gary, Lafayette, and Muncie). This matches the list of Indiana cities studied under the CDC Behavioral Risk Factor Surveillance System (BRFSS); a specific request of the client.
+  - The available EPA Indiana air monitoring data corresponding to the counties in which the above cities are located (i.e., Marion, Allen, Vanderburgh, St. Joseph, Hamilton, Monroe, Lake, Tippecanoe, and Delaware counties).
+  
+### Study Assumptions and Limitations
+
+The assumptions and limitations of this study include:
+
+- The analysis is preliminary and exploratory in nature and not designed to be a comprehensive multiple linear regression analysis.
+- While EPA pollutant monitoring data is available as daily reported values the hospital discharge data counts are only available as counts per year. This means that all EPA data points will be pulled from annual concentration by monitoring tables. This requirement significantly restricts studying the time relationship between EPA pollutant increase and subsequent patient hospitalization. Specifically, it will be impossible to examine the impact of daily or monthly changes in pollutant trends to daily/monthly hospitalization rates. All study conclusions will need to be framed in light of this data limitation.
+- Not all EPA NAAQS pollutants are monitored at all Indiana counties under study. Only AQI and PM~2.5~ values are collected across all counties of interest. This study will be limited to only these two potential monitoring variables. 
+- The available EPA monitoring data is reported at the county level while hospital discharge rates are reported by individual hospitals within each county. This means that hospital discharge counts will be aggregated by county for the regression analysis. 
+- It is assumed that all patients reported within the hospital discharge data represent individuals residing within that respective hospital's county.
+- It is assumed that yearly aggregated explanatory variable data, at the county level and within the ten-year period of study, will display strong enough correlation with the response variable for conducting this preliminary regression analysis.
+
+
+### Project Benefit to Client
+
+The principle motivator for Schneck Medical Center conducting it's original analysis work on COPD readmission was the potential for fines under the U.S. government's Hospital Readmission Reduction Program (HRRP). HRRP focuses on six health conditions, with COPD included in the list. HRRP gives specific attention to readmissions occuring after initial hospitalizations and to hospitals with 30-day readmission rates that exceed the national average. Successfully mitigating HRRP fines remains a motivator for this study as well.
+
+Post-hospitalization long-term care became a central component of Schneck's efforts to reduce COPD readmission rates. Weekly patient follow-up visits from respiratory care staff significantly reduced readmission. If EPA pollutant levels, however, are predictive for increased readmission risk, especially with high risk COPD patients, then pollutant levels may be an important monitoring variable during follow-up care. This study allows Schneck to identify which pollutants, if any, warrant further study as potential monitoring variables.  
+
+## Data Preparation {.tabset}
+
+### Data Sources
+
+#### Explanatory Variables
+
+Both the EPA *Annual Concentration by Monitoring* and the *AQI by County* data tables are made available through the EPA [Pre-generated Data Files](https://aqs.epa.gov/aqsweb/airdata/download_files.html) website. A unique link for each year the respective tables are provided is located within the web page's Annual Summary Data table. Individual data tables are stored in csv format and packaged as a zip file for download.
+
+#### Response Variable
+
+Indiana hospitals are required to provide discharge, cost, and diagnosis data to the Indiana Department of Health. This information is made publicly accessible at the the Indiana Department of Health [Hospital Discharge Data](https://www.in.gov/isdh/20624.htm) website. The page provides a link to each year's data download page. At the download pages, discharge data for each year is stored in Microsoft Access (.mdb) format and provided in a variety of summary formats. This study uses files published with the *Diagnosis* naming convention, which summarizes discharge data by Hospital, Principal Diagnosis, and Primary Payer. 
+
+Each yearly data download page also provides Lookup Tables in csv format. These identify and describe the individual codes within the Access database. The yearly reference tables necessary to this study are: *DIAGNOSIS ID*, *HOSPITAL ID*, and *VARIABLES ID*.
+
+### Data Description {.tabset}
+
+#### EPA AQI Data 
+##### Background Information
+
+The Air Quality Index Summary Report displays an annual summary of the Air Quality Index (AQI) values for counties or metropolitan areas. Air Quality Index is an indicator of overall air quality and takes into account all of the EPA criteria air pollutants measured within the county/metropolitan area. Each row of the AQI Report lists summary values for one year for one county/metropolitan area. Included in the report are qualitative measures (e.g., count of days with "good" air quality) and descriptive statistics (e.g., median AQI value). It is important to note that many geographic areas have monitoring stations for some, but not all, of the criteria pollutants. AQI Report data is considered preliminary until May 1 of the following year. Reported values are aggregates of recorded daily values from established monitoring sites across the United States.
+
+##### aqi_by_county_\#\#\#\#.csv (filename ends with year)
+
+AQI data is provided as separate files by year. Each file is a csv table containing the fields described below. The fields of specific interest to this study are: "State", "County", "Moderate Days", "Unhealthy for Sensitive Groups Days", "Unhealthy Days", "Very Unhealthy Days", and "Hazardous Days". The "State" and "County" fields are required for filtering, while the remaining fields represent counts of days within pre-defined AQI ranges, all of which are values greater than 50. Counts from these fields will be aggregated, by county, as an explanatory variable.
+
+| Variable | Class | Description |
+|:-------- |:-----:|:----------------|
+|State | character | State name |
+|County | character | County name |
+|Year | double | Year |
+|Days with AQI | double | Count of days with data |
+|Good Days | double | Count of days with AQI between 0-50 |
+|Moderate Days | double | Count of days with AQI between 51-100 |
+|Unhealthy for Sensitive Groups Days | double | Count of days with AQI between 101-150 |
+|Unhealthy Days | double | Count of days with AQI between 151-200 |
+|Very Unhealthy Days | double | Count of days with AQI between 201-250 |
+|Hazardous Days | double | Count of days with AQI between 251-300 |
+|Max AQI | double | Maximum AQI recorded for the year |
+|90th Percentile AQI | double | Count of days the AQI value < 90^th^ percentile value |
+|Median AQI | double | Half of daily AQI values were > this value, half < this value |
+|Days CO | double | Days that CO was the Main Pollutant for daily AQI value |
+|Days NO2 | double | Days that NO2 was the Main Pollutant for daily AQI value |
+|Days Ozone | double | Days that Ozone was the Main Pollutant for daily AQI value |
+|Days SO2 | double | Days that SO2 was the Main Pollutant for daily AQI value |
+|Days PM2.5 | double | Days that PM~2.5~ was the Main Pollutant for daily AQI value |
+|Days PM10 | double | Days that PM~10~ was the Main Pollutant for daily AQI value |
+
+#### EPA Annual Concentration Data
+##### Background Information
+
+The EPA Annual Concentration by Monitoring data file is a specific form of an Air Quality Statistics Report. This report displays air pollution values for all six criteria pollutants codified within the National Ambient Air Quality Standards. The report allows you to see if an area's (county or metropolitan area) maximum air quality measurements are above the national standards for a particular year. Each row lists standards-related air pollution statistics for each criteria pollutant, for a single area, for one year. Annual concentration data is considered preliminary until May 1 of the following year. Reported values are aggregates of recorded daily values from established monitoring sites across the United States.
+
+##### annual_conc_by_monitor_\#\#\#\#.csv (filename ends with year)
+
+EPA annual concentration by monitoring data is provided as separate files by year. Each file is a csv table containing the fields described below. The fields of specific interest to this study are: "Pollutant Standard", "Arithmetic Mean", "State Name", and "County Name". The "State Name", "County Name", and "Pollutant Standard" fields are required for filtering while the "Arithmetic Mean" column contains the explanatory data value of interest. The "Arithmetic Mean" values will need to be averaged as monitoring is conducted at multiple sites throughout the county. This will provide an overall average mean pollutant concentration value representative of that county and year. 
+
+| Variable | Class | Description |
+|:-------- |:-----:|:----------------|
+|State Code | character | State FIPS Code where monitor resides |
+|County Code | character | County FIPS Code where monitor resides |
+|Site Num | character | A unique site identification number |
+|Parameter Code | double | The AQS code for the parameter being measured |
+|POC | double | The "Parameter Occurrence Code" to identifying the instrument used |
+|Latitude | double | The monitor's location latitude value |
+|Longitude | double | The monitor's location longitude value |
+|Datum | character | The Datum associated with the latitude/longitude measures |
+|Parameter Name | character | AQS pollutant parameter name: "pollutant" or "non-pollutant" |
+|Sample Duration | character | Length of time required for that sampling event |
+|Pollutant Standard | character | The applicable ambient air quality rule for data collection |
+|Metric Used | character | Method for calculation of reported data value |
+|Method Name | character | The processes, equipment, and protocols used to measure sample |
+|Year | double | The year in which data is reported |
+|Units of Measure | character | The unit of measure for the reported sample data value |
+|Event Type | character | Indicates if data measurements during exceptional events are included |
+|Observation Count | double | The number of samples taken during the year |
+|Observation Percent | double | The percent of samples taken out of the number scheduled that year |
+|Completeness Indicator | character | Y/N on whether regulatory completeness criteria have been met |
+|Valid Day Count | double | Days during year where monitoring criteria were met |
+|Required Day Count | double | Days scheduled for samples to be taken |
+|Exceptional Day Count | double | Days affected by exceptional air quality events |
+|Null Data Count | double | Days when no data was collected and the reason not reported |
+|Primary Exceedance Count | double | Days the sample exceeded the primary air quality standard |
+|Secondary Exceedance Count | double | Count of samples exceeding the secondary air quality standard |
+|Certification Indicator | character | Indication whether information accuracy has been certified |
+|Num Obs Below MDL | double | Count of samples with values below the method detection limit |
+|Arithmetic Mean | double | The average value for the year |
+|Arithmetic Standard Dev | double | The standard deviation about the reported Arithmetic Mean |
+|1st Max Value | double | The highest value for the year |
+|1st Max DateTime | datetime | The date/time when the 1st Max Value was taken |
+|2nd Max Value | double | The second highest value for the year |
+|2nd Max DateTime | datetime | The date/time when the 2nd Max Value was taken |
+|3rd Max Value | double | The third highest value for the year |
+|3rd Max DateTime | datetime | The date/time when the 3rd Max Value was taken |
+|4th Max Value | double | The fourth highest value for the year |
+|4th Max DateTime | datetime | The date/time when the 4th Max Value was taken |
+|1st Max Non Overlapping Value | double | For 8-hour CO averages, the highest value of the year |
+|1st Max NO Max DateTime | datetime | The date/time when the 1st Max NO Value was taken |
+|2nd Max Non Overlapping Value | double | For 8-hour CO averages, the 2nd highest value of the year |
+|2nd Max NO Max DateTime | datetime | The date/time when the 2nd Max NO Value was taken |
+|99th Percentile | double | The value for which 99% of reported values are less than or equal |
+|98th Percentile | double | The value for which 98% of reported values are less than or equal |
+|95th Percentile | double | The value for which 95% of reported values are less than or equal |
+|90th Percentile | double | The value for which 90% of reported values are less than or equal |
+|75th Percentile | double | The value for which 75% of reported values are less than or equal |
+|50th Percentile | double | The value for which 50% of reported values are less than or equal |
+|10th Percentile | double | The value for which 10% of reported values are less than or equal |
+|Local Site Name | character | Name given the monitoring site |
+|Address | character | The approximate street address of the monitoring site |
+|State Name | character | Name of the state where monitoring site is located |
+|County Name | character | Name of the county in which the monitoring site is located |
+|City Name | character | Name of the city in which the monitoring site is located |
+|CBSA Name | character | The metropolitan are name for the monitoring site | 
+|Date of Last Change | date | The last date when numerical values in this record were updated |
+
+#### Indiana Hospital Discharge Data
+##### Background Information
+
+All non-federal acute care hospitals within the state of Indiana are required to report inpatient and outpatient hospital discharges to the Indiana Department of Health, per Indiana Code 16-21-6-6. The resulting data are shared for all reporting hospitals, with the number of reporting hospitals varying by year. Hospitals submit data monthly to the Indiana Hospital Association (IHA). IHA then processes the records for accuracy, consistency and completeness, and requests resubmissions as necessary. 
+
+Once finalized, the Indiana Department of Health combines the data for annual release. Six separate aggregate data files are published each year. Reported data is aggregated in the following ways: by hospital payer, APR-DRG designation (All Patients Refined Diagnosis Related Groups), MS-DRG designation (Medicare Severity Diagnosis Related Groups), principal diagnosis, and principal procedure. For this study, the tables for discharge data aggregated by principal diagnosis code was downloaded.
+
+##### DIAG_IN\#\#\#\#.xls (filename ends with year)
+
+Indiana hospital discharge data is provided in Microsoft Access (.mdb) format. The software program *MDB Viewer for Mac* was utilized to access all downloaded data files. This software includes an export utility which enables saving the full data table to a local system folder in .xls format. This software and utility were used to convert all downloaded data tables to the Excel .xls format.
+
+Each .xls file contains the fields described below. The fields of specific interest to this study are: "HOSPITAL_ID", "DIAGNOSIS_1", and "PATS". The "HOSPITAL_ID" field is a unique numerical identifier for the hospital reporting the data. "DIAGNOSIS_1" provides the current ICD9 or ICD10 Diagnostic Code associated with the primary diagnosis of the patient. International Classification of Diseases (ICD) codes are utilized by the hospital to classify mortality data from death certificates. It has become the industry standard for diagnostic coding related to billing and patient care. For this study, codes recorded between 2010 and 2015 were cataloged using the ICD9 standardized tables. Codes recorded between 2016 and 2019 were cataloged using the ICD10 standardized tables. This study will focus on ICD codes specific to COPD. Lastly, the "PATS" field is the number of total patient discharges with the assigned ICD code.
+
+| Variable | Class | Description |
+|:-------- |:-----:|:----------------|
+|HOSPITAL_ID |double | The unique hospital identification number |
+|PAYOR1 | double | A code representing the primary payer |
+|DIAGNOSIS_1 | character | The principle ICD diagnostic code assigned to this hospitalization |
+|PATS | double | Total patient discharges |
+|PWC | double | Patient discharges with charge information |
+|TD | double | Total days (length of stay) |
+|TC | double | Total charges for this hospitalization |
+|XC | double | Average charge for this hospitalization |
+|XD | double | Average days (length of stay) |
+
+### Data Cleaning {.tabset}
+
+#### EPA AQI Data
+
+##### Initial Data Exploration
+
+Downloaded AQI data from the EPA Pre-Generated Data Files website is separate files for each year. This study runs across the ten year time frame of 2010-2019, meaning ten data files to inspect. Additionally, only seven variables from this data are of interest to this study: "State", "County", "Moderate Days", "Unhealthy for Sensitive Groups Days", "Unhealthy Days", "Very Unhealthy Days", and "Hazardous Days". These variables are factor and numeric count values. Data inspection, then, needs to examine: 1) data consistency across the files, impacting the ability to join the data, and 2) data quality issues, especially as they affect our seven variables of interest, prior to joining.
+
+**Inspection goals related to data consistency across all files:**
+
+1. Are column titles the same across all data files?
+2. Is the column sequence the same across all data files?
+3. Are column data types consistent across the data files?
+4. Are any columns missing from individual year files, especially variables of interest?
+
+**Inspection goals related to data quality across all files:**
+
+5. Any missing data issues of impact to this study, especially with variables of interest?
+6. Is data tidy (observations as rows, variables as columns)? Will data restructuring be needed before/after joining?
+7. Do variables of interest show serious outliers and obvious errors:
+    + Extreme values (beyond plausible)
+    + Impossible values (out-of-range issues)   
+    + Categorical data problems (name typos, consistent formatting, etc.)
+    + Units of measurement consistency
+
+
+##### Data Consistency Inspections
+
+**Questions 1), 2), and 4)** These three questions can be addressed by capturing column names of all tables as a dataframe and transposing the values. Inspection of the resulting table will show both the names and the order in which they appear. Missing columns will show as shifted data. 
+
+Output file:
+```{r packages, include = TRUE, message = FALSE}
+library(dplyr)
+library(tidyr)
+library(readr)
+library(ggplot2)
+library(skimr)
+```
+```{r load aqi colnames, include=FALSE}
+t_colnames_list <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/t_colnames_list.csv')
+```
+```{r view colnames, echo=FALSE}
+print(t_colnames_list)
+```
+
+**Results:** All AQI files show the same names, with the same formatting, and in the same sequence. No columns are missing across all files.
+
+**Question 3)** This question can be addressed by capturing column types of all tables as a dataframe and transposing the values. Inspection of the resulting table will show both the names and the order in which they appear.
+
+Output file:
+```{r load aqi coltype, include=FALSE}
+t_coltype_list <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/t_coltype_list.csv')
+```
+```{r view aqi coltype, echo=FALSE}
+print(t_coltype_list)
+```
+**Results:** All AQI files show the same column types, with the same formatting, and in the same sequence.
+
+##### Data Quality Inspections
+
+**Questions 5) and 7)** Question 5) and much of Question 7) can be addressed by running skimr::skim() on each of the AQI data files. This function provides summary statistics of objects, including missing value counts, data types, interquartile range of numeric data, and miniature histograms of numeric data. An example output from the 2010 AQI data file is provided below.
+
+```{r load aqi2010, include=FALSE}
+aqi_2010 <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/annual_aqi_by_county_2010.csv')
+```
+```{r skim AQI, echo=FALSE}
+skim(aqi_2010)
+```
+**Results:** Inspecting across all AQI files show:
+
+- No missing values across all variables
+- No empty values for categorical fields
+- No whitespace for values within categorical fields
+- All numerical values within an expected range (e.g., count of days <= 365)
+- No extreme values that constitute an outlier. All day counts are between 0-365. "Median AQI" values and "90th Percentile AQI" values are consistently close together across all data sets, and are all within reasonable bounds. (Note: only the "Max AQI" variable shows very high values across the data sets; but this is expected due to the formula used to calculate this statistic.)
+
+This shows that Question 5) is satisfied with no issues. With regards to Question 7), no extreme values or impossible values appear within these data sets.
+
+**Question 6):** "Tidy Data" is identified according to three principles: 1) Observations are rows, 2) Variables as columns, and 3) One type of observational unit per table. 
+
+Checking for duplicate records was restricted to data with State = "Indiana. No duplicate County rows were found.
+```{r dupe aqi counties, echo=TRUE}
+aqi_counties <- aqi_2010 %>% filter(State =="Indiana")
+print("Sum of duplicate Counties:") 
+sum(duplicated(aqi_counties$County))
+```
+**Results:** All tables show only variables as columns. Each state of Indiana row represents only one County, meaning only one type of observation per row. All data is only AQI variable by State and County. The tables meet the requirements of "Tidy Data".
+
+**Question 7):** Only two items remain to be answered from this question: categorical data problems and units of measurement. 
+
+**Results:** For these data files the only categorical variables are "State" and "County". Both have been previously validated as having no duplicates and no typos. No categorical data problems exist with these data files. For the remaining numerical variables, these values are only integer counts of days or an integer representation of an AQI value. No units of measurement apply, therefore there are no units of measurements issues with these data files.
+
+**All AQI data files are ready for joining and calculation of any necessary new variables.**
+
+#### EPA Annual Concentration Data
+
+##### Initial Data Exploration
+
+**Coding note** 
+All Annual Concentration data tables are larger than 25 MB in size. This means that they cannot be loaded to the github repository for this project. This limits the ability to display the results here in an RMarkdown code chunk. Instead, output files will be saved to github and then called for display, as possible.
+
+Downloaded concentration data from the EPA Pre-Generated Data Files website is separate files for each year. This study runs across the ten year time frame of 2010-2019, meaning ten data files to inspect. Additionally, only four variables from this data are of interest to this study: "Pollutant Standard", "Arithmetic Mean", "State Name", and "County Name". These variables are factor and numeric count values. Data inspection, then, needs to examine: 1) data consistency across the files, impacting the ability to join the data, and 2) data quality issues, especially as they affect our seven variables of interest, prior to joining.
+
+**Inspection goals related to data consistency across all files:**
+
+1. Are column titles the same across all data files?
+2. Is the column sequence the same across all data files?
+3. Are column data types consistent across the data files?
+4. Are any columns missing from individual year files, especially variables of interest?
+
+**Inspection goals related to data quality across all files:**
+
+5. Any missing data issues of impact to this study, especially with variables of interest?
+6. Is data tidy (observations as rows, variables as columns)? Will data restructuring be needed before/after joining?
+7. Do variables of interest show serious outliers and obvious errors:
+    + Extreme values (beyond plausible)
+    + Impossible values (out-of-range issues)   
+    + Categorical data problems (name typos, consistent formatting, etc.)
+    + Units of measurement consistency
+
+##### Data Consistency Inspections
+
+**Questions 1), 2), and 4)** These three questions can be addressed by capturing column names of all tables as a dataframe and transposing the values. Inspection of the resulting table will show both the names and the order in which they appear. Missing columns will show as shifted data. 
+
+Output file:
+```{r load conc colnames, include=FALSE}
+t_colnames_list_conc <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/t_colnames_list_conc.csv')
+```
+```{r view conc colnames, echo=FALSE}
+print(t_colnames_list_conc)
+```
+
+**Results:** All Concentration files show the same names, with the same formatting, and in the same sequence. No columns are missing across all files.
+
+**Question 3)** This question can be addressed by capturing column types of all tables as a dataframe and transposing the values. Inspection of the resulting table will show both the names and the order in which they appear.
+
+Output file:
+```{r load conc coltype, include=FALSE}
+t_coltype_list_conc <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/t_coltype_list_conc.csv')
+```
+```{r view conc coltype, echo=FALSE}
+print(t_coltype_list_conc)
+```
+**Results:** All Concentration files show the same column types, with the same formatting, and in the same sequence.
+
+##### Data Quality Inspections
+
+**Questions 5) and 7)** Question 5) and much of Question 7) can be addressed by running skimr::skim() on each of the Concentration data files. This function provides summary statistics of objects, including missing value counts, data types, interquartile range of numeric data, and miniature histograms of numeric data.
+
+Concentration data files contain 55 variables with only four of value to this study. Inspection for these questions was limited to the four variables of interest.
+
+**Results:** Inspecting across all Concentration files show:
+
+- Only "Pollutant Standard" showed missing values. Records within each data table were filtered to show only those with missing "Pollutant Standard" values. Inspection showed that none of these missing values are associated with the monitoring for PM~2.5~ values. Therefore, no missing values affect these data tables.
+- No empty values for categorical fields
+- No whitespace for values within categorical fields
+- All numerical values within an expected range (i.e., "Arithmetic Mean" values )
+- No extreme values that constitute an outlier. "Arithmetic Mean" is the only numeric value of interest in these data files. All values were within a reasonable range.
+
+This shows that Question 5) is satisfied with no issues. With regards to Question 7), no extreme values or impossible values appear within these data sets.
+
+**Question 6):** "Tidy Data" is identified according to three principles: 1) Observations are rows, 2) Variables as columns, and 3) One type of observational unit per table. 
+
+Checking for duplicate records was restricted to data with State = "Indiana. No duplicate County rows were found.
+
+**Results:** All tables show only variables as columns. Each state of Indiana row represents only one County, meaning only one type of observation per row. All data is only pollutant monitoring data by State and County. The tables meet the requirements of "Tidy Data".
+
+**Question 7):** Only two items remain to be answered from this question: categorical data problems and units of measurement. 
+
+**Results:** For these data files the only categorical variables are "State" and "County". Both have been previously validated as having no duplicates and no typos. No categorical data problems exist with these data files. For the remaining numerical variable, "Arithmetic Mean", all applicable records showed the consistent "Units of Measure" field value of "Micrograms/cubic meter (LC)". No units of measurement issues apply to these data tables.
+
+**All Concentration data files are ready for joining and calculation of any necessary new variables.**
+
+#### Indiana Hospital Discharge Data
+
+##### Initial Data Exploration
+
+**Coding note** 
+All Discharge data tables are larger than 25 MB in size. This means that they cannot be loaded to the github repository for this project. This limits the ability to display the results here in an RMarkdown code chunk. Instead, output files will be saved to github and then called for display, as possible.
+
+Downloaded Discharge data from the Indiana Department of Health website is separate files for each year. This study runs across the ten year time frame of 2010-2019, meaning ten data files to inspect. Additionally, only three variables from this data are of interest to this study: "HOSPITAL_ID", "DIAGNOSIS_1", and "PATS". These variables are factor and numeric count values. Data inspection, then, needs to examine: 1) data consistency across the files, impacting the ability to join the data, and 2) data quality issues, especially as they affect our seven variables of interest, prior to joining.
+
+**Inspection goals related to data consistency across all files:**
+
+1. Are column titles the same across all data files?
+2. Is the column sequence the same across all data files?
+3. Are column data types consistent across the data files?
+4. Are any columns missing from individual year files, especially variables of interest?
+
+**Inspection goals related to data quality across all files:**
+
+5. Any missing data issues of impact to this study, especially with variables of interest?
+6. Is data tidy (observations as rows, variables as columns)? Will data restructuring be needed before/after joining?
+7. Do variables of interest show serious outliers and obvious errors:
+    + Extreme values (beyond plausible)
+    + Impossible values (out-of-range issues)   
+    + Categorical data problems (name typos, consistent formatting, etc.)
+    + Units of measurement consistency
+
+##### Data Consistency Inspections
+
+**Questions 1), 2), and 4)** These three questions can be addressed by capturing column names of all tables as a dataframe and transposing the values. Inspection of the resulting table will show both the names and the order in which they appear. Missing columns will show as shifted data. 
+
+Output file:
+```{r load diag colnames, include=FALSE}
+t_colnames_list_diag <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/t_colnames_list_diag.csv')
+```
+```{r view diag colnames, echo=FALSE}
+print(t_colnames_list_diag)
+```
+
+**Results:** Different files names for the first and third columns exist within the 2010 through 2013 Discharge data files. All other files show the same names, with the same formatting, and in the same sequence. No columns are missing across all files. 
+
+**Renaming of columns 1 and 3 of the Discharge data files across 2010-2013**
+
+Column names of "HOSPID" and "DIAG1"within Discharge data files from 2010 through 2013 were renamed to "HOSPITAL_ID" and "DIAGNOSIS_1" respectively. This was accomplished using the base:rename() function.
+
+**Question 3)** This question can be addressed by capturing column types of all tables as a dataframe and transposing the values. Inspection of the resulting table will show both the names and the order in which they appear.
+
+Output file:
+```{r load diag coltype, include=FALSE}
+t_coltype_list_diag <- readr::read_csv('https://raw.githubusercontent.com/ToddAlbin/Capstone-COPDStudy/main/t_coltype_list_diag.csv')
+```
+```{r view diag coltype, echo=FALSE}
+print(t_coltype_list_diag)
+```
+**Results:** All Discharge files show the same column types, with the same formatting, and in the same sequence.
+
+##### Data Quality Inspections
+
+**Questions 5) and 7)** Question 5) and much of Question 7) can be addressed by running skimr::skim() on each of the Discharge data files. This function provides summary statistics of objects, including missing value counts, data types, interquartile range of numeric data, and miniature histograms of numeric data.
+
+Discharge data files contain nine variables with only three of value to this study. Inspection for these questions was limited to the three variables of interest.
+
+**Results:** Inspecting across all Discharge files show:
+
+- No missing values across all variables
+- No empty values for categorical fields
+- No whitespace for values within categorical fields
+- All numerical values within an expected range (i.e., "PATS" values )
+- No extreme values that constitute an outlier. "PATS" is the only numeric value of interest in these data files. All values were within a reasonable range.
+
+This shows that Question 5) is satisfied with no issues. With regards to Question 7), no extreme values or impossible values appear within these data sets.
+
+**Question 6):** "Tidy Data" is identified according to three principles: 1) Observations are rows, 2) Variables as columns, and 3) One type of observational unit per table. 
+
+All records within diagnostic data files are one record per hospital per diagnostic code. No duplicates by diagnostic code were identified. 
+
+**Results:** All tables show only variables as columns. Each row represents only one hospital/diagnostic code combination, meaning only one type of observation per row. All data is only patient discharge data. The tables meet the requirements of "Tidy Data".
+
+**Question 7):** Only two items remain to be answered from this question: categorical data problems and units of measurement. 
+
+**Results:** For these data files the only categorical variables are "HOSPITAL_ID" and "DIAGNOSIS_1". Both have been inspected and show no duplicates and consistent ICD9 or ICD10 coding values. No categorical data problems exist for these data sets. "PATS" is the only numerical field and consists of patient counts. No units of measurement apply to this data. Therefore no units of measurement problems exist within the data files.
+
+**All Concentration data files are ready for joining and calculation of any necessary new variables.**
+
+### Derived Values & Final Analysis Table {.tabset}
+
+#### AQI Data Tables
+
+##### Filtering, Subsetting, Mutation, and Selection of AQI Year Tables
+
+The yearly AQI data files can now be reduced to to a single analysis ready table of AQI measures. Each file needs the following changes prior to aggregation:
+
+- Filter for 'State' = "Indiana"
+- Filter for 'County' = the nine counties identified in the Proposed Methodology
+- Mutate a new column "RiskDays" = sum of fields 'Moderate Days', 'Unhealthy for Sensitive Groups Days' + 'Unhealthy Days' + 'Very Unhealthy Days' + 'Hazardous Days'. This represents the total days where the AQI value was >= 50. This is one of our explanatory variables.
+- Select only the fields 'State', 'County', 'Year', and 'RiskDays' for extraction
+
+The code below shows reduction of the 2010 AQI table.
+```{r AQI reduction}
+aqi_2010_filter <- aqi_2010 %>%
+  filter(State == "Indiana") %>%
+  filter(County %in% c("Marion", "Allen", "Vanderburgh", "St. Joseph", "Hamilton", "Monroe", "Lake", "Tippecanoe", "Delaware")) %>%
+  mutate(RiskDays = `Moderate Days` + `Unhealthy for Sensitive Groups Days` + `Unhealthy Days` + `Very Unhealthy Days` + `Hazardous Days`) %>%
+  select(State, County, Year, RiskDays)
+
+print(aqi_2010_filter)
+```
+
+Each of the yearly reduced tables were then aggregated using dplyr::bind_rows() into one "aqi_final" data table. This will be joined into a final analysis table once all remaining data reduction has been completed.
+
+#### Concentration Data Tables
+
+##### Filtering, Subsetting, Mutation, and Selection of AQI Year Tables
+
+The yearly Concentration data files can now be reduced to to a single analysis ready table of Concentration measures. Each file needs the following changes prior to aggregation:
+
+- Filter for 'State Name' = 'Indiana'
+- Filter for 'County Name" = the nine counties identified in the Proposed Methodology
+- Filter for 'Pollutant Standard' = "PM25 Annual 2006"
+- Select only the fields 'State Name', "County Name', 'Year', and 'Arithmetic Mean' for extraction. 
+- Rename the 'Arithmetic Mean' variable to 'PM25'. This is the other of our explanatory variables. 
+
+The code below shows reduction of the 2010 Concentration table.
+```{r AQI reduction}
+aqi_2010_filter <- aqi_2010 %>%
+  filter(State == "Indiana") %>%
+  filter(County %in% c("Marion", "Allen", "Vanderburgh", "St. Joseph", "Hamilton", "Monroe", "Lake", "Tippecanoe", "Delaware")) %>%
+  mutate(RiskDays = `Moderate Days` + `Unhealthy for Sensitive Groups Days` + `Unhealthy Days` + `Very Unhealthy Days` + `Hazardous Days`) %>%
+  select(State, County, Year, RiskDays)
+
+print(aqi_2010_filter)
+```
+
+Each of the yearly reduced tables were then aggregated using dplyr::bind_rows() into one "aqi_final" data table. This will be joined into a final analysis table once all remaining data reduction has been completed.
+
+#### Discharge Data
+
+
+#### Final Analysis Table
+
+
+## Analysis {.tabset}
+
+### Modeling
+
+### Model Evaluation
+
+
+## Report Summary

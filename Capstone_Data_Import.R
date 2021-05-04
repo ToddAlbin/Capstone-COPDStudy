@@ -7,6 +7,7 @@
 library(readr)
 library(readxl)
 library(dplyr)
+library(data.table)
 
 # ------------------------------------------------------
 # Indiana Hospital Discharge Data - initial data load
@@ -173,3 +174,4 @@ conc_2017 <- read_csv("annual_conc_by_monitor_2017.csv")
 conc_2018 <- read_csv("annual_conc_by_monitor_2018.csv")
 conc_2019 <- read_csv("annual_conc_by_monitor_2019.csv")
 
+aqi_2010_filter
