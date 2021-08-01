@@ -592,4 +592,11 @@ diag_final <- rename(diag_final, Hosp_Count = HOSP_COUNT)
 
 analysis <- inner_join(analysis, diag_final, by = c("State"="STATE", "County"="COUNTY", "Year"="YEAR"))
 
-write_csv(analysis, "analaysis.csv")
+write_csv(analysis, "analysis.csv")
+write_csv(aqi_final, "aqi_final.csv")
+write_csv(conc_final, "conc_final.csv")
+write_csv(diag_final, "diag_final.csv")
+
+# Reduce analysis to only variables of interest
+model_data <- analysis %>%
+  select(Hosp_Count, RiskDays, PM25_Avg)
